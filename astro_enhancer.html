@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astro Finalizer</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --panel: #131826;
+      --panel-2: #1a2133;
+      --text: #edf2ff;
+      --muted: #9aa6c2;
+      --line: #2a3350;
+      --accent: #7aa2ff;
+      --accent-2: #9d7bff;
+      --good: #38d39f;
+      --warn: #ffb454;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #18213a 0%, #0b0e14 45%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: rgba(19,24,38,0.92);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.26);
+      overflow: hidden;
+    }
+    .pad { padding: 20px; }
+    h1 {
+      font-size: 32px;
+      line-height: 1.05;
+      margin: 0 0 10px;
+      letter-spacing: -0.02em;
+    }
+    p { color: var(--muted); margin: 0 0 12px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(122,162,255,0.12);
+      border: 1px solid rgba(122,162,255,0.28);
+      color: #cfe0ff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .dropzone {
+      border: 1.5px dashed #47609a;
+      border-radius: 18px;
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(122,162,255,0.06), rgba(122,162,255,0.02));
+      transition: .2s ease;
+    }
+    .dropzone.drag { transform: scale(1.01); border-color: var(--accent); background: rgba(122,162,255,0.08); }
+    .btns { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+    button, .filelabel {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.secondary, .filelabel.secondary {
+      background: #212b41;
+      border: 1px solid #33415f;
+      color: #dbe5ff;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    input[type=file] { display: none; }
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .controls { position: sticky; top: 18px; }
+    .control-group { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+    .control-group:last-child { border-bottom: 0; }
+    .group-title { font-weight: 700; margin-bottom: 12px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin: 10px 0; }
+    .row label { color: #dce5ff; font-size: 14px; }
+    .row span { color: var(--muted); font-size: 13px; min-width: 46px; text-align: right; }
+    input[type=range] { width: 100%; accent-color: #8aaafc; }
+    .preview {
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+    }
+    .canvas-wrap {
+      background: #0a0d14;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .canvas-head {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      color: #dbe5ff;
+      font-size: 14px;
+      background: #0f1420;
+    }
+    canvas { display: block; width: 100%; height: auto; background: #06080d; }
+    .note {
+      padding: 14px 16px;
+      background: rgba(255,180,84,.1);
+      border: 1px solid rgba(255,180,84,.25);
+      border-radius: 14px;
+      color: #f4dfbb;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .ok {
+      padding: 14px 16px;
+      background: rgba(56,211,159,.08);
+      border: 1px solid rgba(56,211,159,.22);
+      border-radius: 14px;
+      color: #c7f5e5;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .footer { color: #7f8aa5; font-size: 12px; margin-top: 14px; }
+    @media (max-width: 1100px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .controls { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="card pad">
+        <div class="badge">Astrofotoğraf Finalizer • yıldız kontrolü • dark background • nebula vurgu</div>
+        <h1>Tek yükleme ile görüntüyü final kaliteye yaklaştıran astro düzenleme sitesi</h1>
+        <p>Bu arayüz JPG ve PNG dosyalarını doğrudan işler. Tarayıcı destek verirse TIFF de açılır. XISF için çıplak tarayıcı dünyası biraz muz cumhuriyeti gibi; saf HTML/JS tarafında güvenilir XISF decode yok. Bu yüzden uygulama XISF’yi doğrudan işlemek yerine dürüstçe uyarı verir.</p>
+        <p>Motor; arka planı dengeler, siyahları kontrollü bastırır, renkleri canlılaştırır, yıldızları daha temiz ve keskin gösterir, parlak yıldız çevresindeki patlamayı makul sınırda tutmaya çalışır.</p>
+        <div class="btns">
+          <label class="filelabel" for="fileInput">Görüntü Yükle</label>
+          <button class="secondary" id="applyPresetBtn">Ghost Nebula Preset</button>
+          <button class="secondary" id="resetBtn">Sıfırla</button>
+          <button id="downloadBtn" disabled>Final PNG İndir</button>
+        </div>
+      </div>
+      <div class="card pad">
+        <div id="dropzone" class="dropzone">
+          <div>
+            <div style="font-size:18px;font-weight:800;margin-bottom:8px;">Dosyayı buraya bırak</div>
+            <div style="color:#c9d4f0;margin-bottom:6px;">JPG • PNG • TIFF deneme • XISF bilgilendirme</div>
+            <div style="color:#8793b2;font-size:13px;">Yükleme sonrası önizleme ve final sonucu yan yana gösterilir.</div>
+          </div>
+        </div>
+        <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.xisf,image/png,image/jpeg,image/tiff" />
+        <div class="note" style="margin-top:14px;">
+          Kritik not: Bu sürüm tamamen tarayıcı içi çalışır. O yüzden <strong>XISF native desteklenmez</strong>. Gerçek XISF/TIFF 16-bit lineer iş akışı için Python backend gerekir. Bu prototip ise pazara çıkabilecek hızlı MVP mantığında, özellikle sosyal medya ve ön-final kalite için tasarlandı.
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="controls card">
+        <div class="control-group">
+          <div class="group-title">Hazır mod</div>
+          <div class="btns">
+            <button class="secondary" id="presetBalanced">Balanced</button>
+            <button class="secondary" id="presetNebula">Nebula Boost</button>
+            <button class="secondary" id="presetStarfield">Starfield Clean</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="group-title">Ton ve arka plan</div>
+          <div class="row"><label>Background dark</label><span id="bgDarkVal"></span></div>
+          <input id="bgDark" type="range" min="0" max="80" value="28" />
+          <div class="row"><label>Black protect</label><span id="blackProtectVal"></span></div>
+          <input id="blackProtect" type="range" min="0" max="50" value="12" />
+          <div class="row"><label>Contrast</label><span id="contrastVal"></span></div>
+          <input id="contrast" type="range" min="-40" max="80" value="18" />
+          <div class="row"><label>Gamma lift</label><span id="gammaVal"></span></div>
+          <input id="gamma" type="range" min="60" max="140" value="98" />
+        </div>
+        <div class="control-group">
+          <div class="group-title">Renk ve nebula</div>
+          <div class="row"><label>Saturation</label><span id="satVal"></span></div>
+          <input id="saturation" type="range" min="0" max="120" value="32" />
+          <div class="row"><label>Nebula warmth</label><span id="warmthVal"></span></div>
+          <input id="warmth" type="range" min="-60" max="100" value="26" />
+          <div class="row"><label>De-green</label><span id="degreenVal"></span></div>
+          <input id="degreen" type="range" min="0" max="100" value="35" />
+        </div>
+        <div class="control-group">
+          <div class="group-title">Yıldız kalitesi</div>
+          <div class="row"><label>Star clarity</label><span id="clarityVal"></span></div>
+          <input id="clarity" type="range" min="0" max="100" value="36" />
+          <div class="row"><label>Halo control</label><span id="haloVal"></span></div>
+          <input id="halo" type="range" min="0" max="100" value="28" />
+          <div class="row"><label>Micro sharpen</label><span id="sharpVal"></span></div>
+          <input id="sharpness" type="range" min="0" max="100" value="22" />
+        </div>
+        <div class="control-group">
+          <div class="ok">
+            Tavsiye edilen operasyon çerçevesi: önce Balanced ile başla, sonra Background dark ve De-green’i ayarla, en son Star clarity ile ince işçiliği yap. Halo control’u aşırı açarsan büyük yıldızlar plastik gibi olur. Kozmos bunu affetmez.
+          </div>
+          <div class="footer">Tamamen yerelde çalışır. Dosya sunucuya gitmez.</div>
+        </div>
+      </div>
+
+      <div class="card preview">
+        <div class="canvas-wrap">
+          <div class="canvas-head"><strong>Orijinal</strong><span id="sourceInfo">Henüz dosya yok</span></div>
+          <canvas id="srcCanvas"></canvas>
+        </div>
+        <div class="canvas-wrap">
+          <div class="canvas-head"><strong>Final</strong><span>Önizleme</span></div>
+          <canvas id="dstCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const state = {
+  originalImageData: null,
+  srcW: 0,
+  srcH: 0,
+  fileName: 'astro-final',
+};
+
+const els = {};
+['fileInput','dropzone','srcCanvas','dstCanvas','downloadBtn','applyPresetBtn','resetBtn','presetBalanced','presetNebula','presetStarfield','sourceInfo',
+'bgDark','blackProtect','contrast','gamma','saturation','warmth','degreen','clarity','halo','sharpness',
+'bgDarkVal','blackProtectVal','contrastVal','gammaVal','satVal','warmthVal','degreenVal','clarityVal','haloVal','sharpVal']
+.forEach(id => els[id] = document.getElementById(id));
+
+const defaultParams = {
+  bgDark: 28,
+  blackProtect: 12,
+  contrast: 18,
+  gamma: 98,
+  saturation: 32,
+  warmth: 26,
+  degreen: 35,
+  clarity: 36,
+  halo: 28,
+  sharpness: 22,
+};
+
+function syncLabels() {
+  els.bgDarkVal.textContent = els.bgDark.value;
+  els.blackProtectVal.textContent = els.blackProtect.value;
+  els.contrastVal.textContent = els.contrast.value;
+  els.gammaVal.textContent = (els.gamma.value / 100).toFixed(2);
+  els.satVal.textContent = els.saturation.value;
+  els.warmthVal.textContent = els.warmth.value;
+  els.degreenVal.textContent = els.degreen.value;
+  els.clarityVal.textContent = els.clarity.value;
+  els.haloVal.textContent = els.halo.value;
+  els.sharpVal.textContent = els.sharpness.value;
+}
+
+function setParams(obj) {
+  Object.entries(obj).forEach(([k,v]) => els[k].value = v);
+  syncLabels();
+  render();
+}
+
+function resetParams() { setParams(defaultParams); }
+
+function setupCanvas(canvas, w, h) {
+  const maxDim = 1400;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  canvas.width = Math.max(1, Math.round(w * scale));
+  canvas.height = Math.max(1, Math.round(h * scale));
+}
+
+async function loadFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'xisf') {
+    alert('XISF dosyası saf HTML/JS sürümünde güvenilir şekilde çözülemiyor. Bu format için backend sürümü gerekir. Şimdilik XISF\'yi 16-bit TIFF veya PNG olarak export edip yükle.');
+    return;
+  }
+
+  let bitmap;
+  try {
+    const blob = new Blob([await file.arrayBuffer()], {type: file.type || 'application/octet-stream'});
+    bitmap = await createImageBitmap(blob);
+  } catch (e) {
+    alert('Bu dosya tarayıcıda açılamadı. JPG/PNG kullan veya TIFF\'i önce PNG/TIFF 8-bit olarak dönüştür.');
+    return;
+  }
+
+  state.srcW = bitmap.width;
+  state.srcH = bitmap.height;
+  state.fileName = file.name.replace(/\.[^.]+$/, '') + '-final';
+  els.sourceInfo.textContent = `${file.name} • ${bitmap.width}×${bitmap.height}`;
+
+  setupCanvas(els.srcCanvas, bitmap.width, bitmap.height);
+  setupCanvas(els.dstCanvas, bitmap.width, bitmap.height);
+
+  const sctx = els.srcCanvas.getContext('2d', { willReadFrequently: true });
+  sctx.clearRect(0,0,els.srcCanvas.width, els.srcCanvas.height);
+  sctx.drawImage(bitmap, 0, 0, els.srcCanvas.width, els.srcCanvas.height);
+  state.originalImageData = sctx.getImageData(0, 0, els.srcCanvas.width, els.srcCanvas.height);
+  els.downloadBtn.disabled = false;
+  render();
+}
+
+function clamp(v, min=0, max=255) { return Math.max(min, Math.min(max, v)); }
+function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+function boxBlurChannel(src, w, h, radius) {
+  if (radius < 1) return src.slice();
+  const tmp = new Float32Array(src.length);
+  const out = new Float32Array(src.length);
+  const rs = Math.max(1, Math.round(radius));
+
+  for (let y=0; y<h; y++) {
+    let sum = 0;
+    for (let x=-rs; x<=rs; x++) sum += src[y*w + Math.max(0, Math.min(w-1, x))];
+    for (let x=0; x<w; x++) {
+      tmp[y*w + x] = sum / (rs*2+1);
+      const x0 = Math.max(0, x-rs);
+      const x1 = Math.min(w-1, x+rs+1);
+      sum += src[y*w + x1] - src[y*w + x0];
+    }
+  }
+  for (let x=0; x<w; x++) {
+    let sum = 0;
+    for (let y=-rs; y<=rs; y++) sum += tmp[Math.max(0, Math.min(h-1, y))*w + x];
+    for (let y=0; y<h; y++) {
+      out[y*w + x] = sum / (rs*2+1);
+      const y0 = Math.max(0, y-rs);
+      const y1 = Math.min(h-1, y+rs+1);
+      sum += tmp[y1*w + x] - tmp[y0*w + x];
+    }
+  }
+  return out;
+}
+
+function render() {
+  if (!state.originalImageData) return;
+  const src = state.originalImageData.data;
+  const w = state.originalImageData.width;
+  const h = state.originalImageData.height;
+  const len = w*h;
+
+  const lum = new Float32Array(len);
+  const rC = new Float32Array(len), gC = new Float32Array(len), bC = new Float32Array(len);
+
+  for (let i=0, p=0; i<len; i++, p+=4) {
+    const r = src[p], g = src[p+1], b = src[p+2];
+    rC[i]=r; gC[i]=g; bC[i]=b;
+    lum[i] = 0.2126*r + 0.7152*g + 0.0722*b;
+  }
+
+  const bgBlur = boxBlurChannel(lum, w, h, 9);
+  const starBlur = boxBlurChannel(lum, w, h, 2);
+  const out = new Uint8ClampedArray(src.length);
+
+  const bgDark = parseFloat(els.bgDark.value) / 100;
+  const blackProtect = parseFloat(els.blackProtect.value) / 100;
+  const contrast = parseFloat(els.contrast.value) / 100;
+  const gamma = parseFloat(els.gamma.value) / 100;
+  const saturation = parseFloat(els.saturation.value) / 100;
+  const warmth = parseFloat(els.warmth.value) / 100;
+  const degreen = parseFloat(els.degreen.value) / 100;
+  const clarity = parseFloat(els.clarity.value) / 100;
+  const halo = parseFloat(els.halo.value) / 100;
+  const sharpness = parseFloat(els.sharpness.value) / 100;
+
+  for (let i=0, p=0; i<len; i++, p+=4) {
+    let r = rC[i] / 255;
+    let g = gC[i] / 255;
+    let b = bC[i] / 255;
+
+    const L = lum[i] / 255;
+    const bg = bgBlur[i] / 255;
+    const starLocal = Math.max(0, (L - starBlur[i] / 255));
+    const starMask = smoothstep(0.03, 0.22, starLocal + Math.max(0, L - bg));
+    const nebulaMask = smoothstep(0.02, 0.18, Math.max(0, bg - 0.05)) * (1 - starMask * 0.7);
+    const backgroundMask = 1 - smoothstep(0.06, 0.28, L);
+
+    let shadowCut = bgDark * backgroundMask * 0.28;
+    r = Math.max(0, r - shadowCut + blackProtect*0.03);
+    g = Math.max(0, g - shadowCut + blackProtect*0.03);
+    b = Math.max(0, b - shadowCut + blackProtect*0.03);
+
+    const mid = 0.5;
+    r = (r - mid) * (1 + contrast) + mid;
+    g = (g - mid) * (1 + contrast) + mid;
+    b = (b - mid) * (1 + contrast) + mid;
+
+    r = Math.pow(clamp(r,0,1), gamma);
+    g = Math.pow(clamp(g,0,1), gamma);
+    b = Math.pow(clamp(b,0,1), gamma);
+
+    let maxc = Math.max(r,g,b), minc = Math.min(r,g,b);
+    let l = (maxc + minc) / 2;
+    let gray = l;
+    r = gray + (r - gray) * (1 + saturation + nebulaMask*0.25);
+    g = gray + (g - gray) * (1 + saturation*0.75);
+    b = gray + (b - gray) * (1 + saturation*0.55);
+
+    r += warmth * 0.08 * nebulaMask;
+    g -= degreen * 0.07 * (0.7*backgroundMask + 0.5*nebulaMask);
+    b += warmth * 0.01 * (1-nebulaMask);
+
+    const haloReduce = halo * starMask * smoothstep(0.55, 1.0, L) * 0.14;
+    r -= haloReduce; g -= haloReduce; b -= haloReduce;
+
+    const localDetail = (L - bg) * (0.6*clarity + 0.45*sharpness);
+    r += localDetail * (0.55 + 0.35*starMask);
+    g += localDetail * (0.55 + 0.35*starMask);
+    b += localDetail * (0.55 + 0.35*starMask);
+
+    r = clamp(Math.round(r * 255));
+    g = clamp(Math.round(g * 255));
+    b = clamp(Math.round(b * 255));
+
+    out[p] = r; out[p+1] = g; out[p+2] = b; out[p+3] = src[p+3];
+  }
+
+  const dctx = els.dstCanvas.getContext('2d', { willReadFrequently: true });
+  const img = new ImageData(out, w, h);
+  dctx.putImageData(img, 0, 0);
+}
+
+function downloadResult() {
+  const a = document.createElement('a');
+  a.href = els.dstCanvas.toDataURL('image/png');
+  a.download = `${state.fileName}.png`;
+  a.click();
+}
+
+els.fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+});
+['bgDark','blackProtect','contrast','gamma','saturation','warmth','degreen','clarity','halo','sharpness']
+.forEach(id => els[id].addEventListener('input', () => { syncLabels(); render(); }));
+
+els.downloadBtn.addEventListener('click', downloadResult);
+els.applyPresetBtn.addEventListener('click', () => setParams({
+  bgDark: 30, blackProtect: 13, contrast: 24, gamma: 96, saturation: 38, warmth: 34, degreen: 42, clarity: 42, halo: 32, sharpness: 28
+}));
+els.presetBalanced.addEventListener('click', () => setParams({
+  bgDark: 24, blackProtect: 14, contrast: 15, gamma: 100, saturation: 24, warmth: 20, degreen: 28, clarity: 28, halo: 20, sharpness: 18
+}));
+els.presetNebula.addEventListener('click', () => setParams({
+  bgDark: 30, blackProtect: 12, contrast: 26, gamma: 95, saturation: 44, warmth: 40, degreen: 38, clarity: 38, halo: 26, sharpness: 26
+}));
+els.presetStarfield.addEventListener('click', () => setParams({
+  bgDark: 22, blackProtect: 16, contrast: 12, gamma: 101, saturation: 18, warmth: 10, degreen: 24, clarity: 52, halo: 42, sharpness: 34
+}));
+els.resetBtn.addEventListener('click', resetParams);
+
+['dragenter','dragover'].forEach(ev => els.dropzone.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); els.dropzone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(ev => els.dropzone.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); els.dropzone.classList.remove('drag');
+}));
+els.dropzone.addEventListener('drop', e => {
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+syncLabels();
+resetParams();
+</script>
+</body>
+</html>
